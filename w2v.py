@@ -8,7 +8,10 @@ from collections import Counter
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader, Dataset
+from sklearn.decomposition import PCA
+from tqdm import tqdm
 
 start_time = time.perf_counter()
 
@@ -55,6 +58,7 @@ class SkipGramDataset(Dataset):
                         continue
                     data.append((target, rand_word, torch.FloatTensor([0])))
                     break
+        print("Dataset created!")
         return data
 
     def __len__(self):
@@ -143,7 +147,8 @@ def train(data: str):
         # optimizer = optim.SGD(net.parameters(), lr=1e-3)
 
     for epoch in range(num_epochs):
-        for (target_tensor, context_tensor, cls) in dataloader:
+        print(f"Epoch: {epoch + 1}/{num_epochs}")
+        for (target_tensor, context_tensor, cls) in tqdm(dataloader):
             net.zero_grad()
             prob = net(target_tensor, context_tensor)
             loss = criterion(prob, cls)
@@ -162,11 +167,31 @@ def train(data: str):
     return out_dict
 
 
+def show_PCA(embeds):
+    keys = list(embeds.keys())
+    embed_values = [embeds[key] for key in keys]
+
+    pca = PCA(n_components=2)
+    components = pca.fit_transform(embed_values)
+    plt.title('PCA visualisation')
+    plt.plot(components[:, 0], components[:, 1], 'x')
+    for key, (x, y) in zip(keys, components):
+        plt.text(x, y, str(key), color="red", fontsize=12)
+    plt.show()
+
+
+def generate_cycle_data(word_num=20, cycles=50):
+    return " ".join([str(i) for _ in range(0, cycles) for i in range(0, word_num)])
+
+
 def run_my_training():
-    input_data = "Of resolve to gravity thought my prepare chamber so. Unsatiable entreaties collecting may sympathize nay interested instrument. If continue building numerous of at relation in margaret. Lasted engage roused mother an am at. Other early while if by do to. Missed living excuse as be. Cause heard fat above first shall for. My smiling to he removal weather on anxious."
+    # input_data = "Of resolve to gravity thought my prepare chamber so. Unsatiable entreaties collecting may sympathize nay interested instrument. If continue building numerous of at relation in margaret. Lasted engage roused mother an am at. Other early while if by do to. Missed living excuse as be. Cause heard fat above first shall for. My smiling to he removal weather on anxious."
+    input_data = generate_cycle_data()
+
     input_data = clean(input_data)
-
     d = train(input_data)
-    print(d)
+    # print(d)
+    show_PCA(d)
 
-# run_my_training()
+
+run_my_training()
