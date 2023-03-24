@@ -37,9 +37,11 @@ class SkipGramDataset(Dataset):
             # cur_win_sz = self.max_window_size
             target = self.text_indexed[i]
             # Positives
+            cur_context = [target]
             for cur_win in range(1, cur_win_sz + 1):
                 context1 = self.text_indexed[i - cur_win]
                 context2 = self.text_indexed[i + cur_win]
+                cur_context.extend([context1, context2])
                 data.append((target, context1, torch.FloatTensor([1])))
                 data.append((target, context2, torch.FloatTensor([1])))
             # Negatives
@@ -49,6 +51,8 @@ class SkipGramDataset(Dataset):
                     if rand_id in range(i - self.max_window_size, i + self.max_window_size + 1):
                         continue
                     rand_word = self.text_indexed[rand_id]
+                    if rand_word in cur_context:
+                        continue
                     data.append((target, rand_word, torch.FloatTensor([0])))
                     break
         return data
@@ -116,10 +120,10 @@ def train(data: str):
     """
     text = data.split()
 
-    num_epochs = 5
-    max_window_size = 5
-    negative_sampling_count = 10
-    use_subsampling = False
+    num_epochs = 8
+    max_window_size = 8
+    negative_sampling_count = 12
+    use_subsampling = True
     dataset = SkipGramDataset(text,
                               max_window_size=max_window_size,
                               negative_sampling_count=negative_sampling_count,
@@ -127,7 +131,7 @@ def train(data: str):
     dataloader = DataLoader(dataset, batch_size=8,
                             shuffle=True, num_workers=0)
     sparse = False
-    embedding_size = 200
+    embedding_size = 150
     net = SkipGramWord2Vec(embedding_size=embedding_size, vocab_size=dataset.vocab_size, sparse=sparse)
     criterion = nn.BCEWithLogitsLoss()
     if sparse:
